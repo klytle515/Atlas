@@ -519,10 +519,7 @@
           <div class="cred-label" data-t="cred3">NPN (National Producer #)</div>
           <div class="cred-value">[NPN Number]</div>
         </div>
-        <div class="cred-card">
-          <div class="cred-label" data-t="cred4">BBB Rating / Certifications</div>
-          <div class="cred-value">[e.g. A+ BBB · CLTC · FIC]</div>
-        </div>
+        
       </div>
       <div class="contact-bar">
         <a href="tel:[Phone]" style="color:var(--gold);text-decoration:none">[Phone]</a>
@@ -1145,14 +1142,14 @@
     <a href="tel:[Phone]" style="color:var(--gold);text-decoration:none">[Phone]</a>
     &nbsp;·&nbsp;
     <a href="mailto:[Email]" style="color:var(--gold);text-decoration:none">[Email]</a>
-    &nbsp;·&nbsp;
-    <a href="[Website]" target="_blank" style="color:var(--gold);text-decoration:none">[Website]</a>
+    <span class="website-link-wrapper">&nbsp;·&nbsp;
+    <a href="[Website]" class="agent-website-link" target="_blank" style="color:var(--gold);text-decoration:none">[Website]</a></span>
   </div>
   <div class="compliance-bar" data-t="cb14">Atlas Financial Services | This presentation is for educational purposes only and does not constitute financial, tax, or legal advice. Annuity products are subject to underwriting approval and insurance company claims-paying ability. Not available in all states. &nbsp;|&nbsp; <strong>v1.0 | March 2026</strong></div>
   <div class="slide-num">14 / 14</div>
 </section>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── TRANSLATION DICTIONARY ───────────────────────────────────
 const T = {
   // NAV
@@ -1528,11 +1525,12 @@ slides.forEach(s => slideObserver.observe(s));
 <script>
 // Propagate logo from nav to all slide logos and heroes
 (function() {
-  var navLogo = document.querySelector('.nav-logo');
+  var navLogo = document.querySelector('.nav-brand img, img.nav-logo');
   if (!navLogo) return;
-  var src = navLogo.src;
-  document.querySelectorAll('.slide-logo, #atlas-hero-1, #atlas-hero-14').forEach(function(img) {
-    img.src = src;
+  var src = navLogo.getAttribute('src');
+  if (!src) return;
+  document.querySelectorAll('img[id^="atlas-hero"], img.slide-logo').forEach(function(img) {
+    img.setAttribute('src', src);
   });
 })();
 </script>
