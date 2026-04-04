@@ -226,10 +226,7 @@
           <label for="npn">NPN *</label>
           <input id="npn" type="text" placeholder="npn #">
         </div>
-        <div class="field">
-          <label for="certifications">BBB Rating / Certifications</label>
-          <input id="certifications" type="text" placeholder="e.g. A+ BBB · CLTC · FIC">
-        </div>
+
       </div>
     </div>
 
@@ -360,7 +357,7 @@ function collectData() {
     eo_carrier: el("eoCarrier").value.trim(),
     eo_policy: el("eoPolicy").value.trim(),
     npn: el("npn").value.trim(),
-    certifications: el("certifications").value.trim(),
+    
     phone: el("phone").value.trim(),
     email: el("email").value.trim(),
     website: normalizeUrl(el("website").value),
@@ -484,7 +481,9 @@ async function buildHtml(data) {
   if (credValues[1]) credValues[1].textContent = [data.eo_carrier, data.eo_policy].filter(Boolean).join(" — ");
   if (credValues[2]) credValues[2].textContent = data.npn || "";
   if (credValues[3]) {
-    credValues[3].textContent = data.certifications || (data.website ? new URL(data.website).hostname.replace(/^www\./i, "") : "");
+    // BBB/Certifications box removed — hide it
+    const cred4Card = credValues[3].closest('.cred-card');
+    if (cred4Card) cred4Card.style.display = 'none';
   }
 
   const contactBar = doc.querySelector(".contact-bar");
@@ -495,8 +494,37 @@ async function buildHtml(data) {
   // Also replace any plain-text placeholders anywhere in the template.
   replaceTextPlaceholders(doc.body, [
     ["[Phone]", data.phone || ""],
-    ["[Email]", data.email || ""]
+    ["[Email]", data.email || ""],
+    ["[Website]", data.website || ""]
   ]);
+
+  // If no website, hide any element that contains only the website placeholder
+  if (!data.website) {
+    const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
+    const toRemove = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if ((node.nodeValue || "").trim() === "") {
+        // Check if parent is a link with empty href or text
+        const parent = node.parentElement;
+        if (parent && parent.tagName === 'A' && !parent.textContent.trim()) {
+          toRemove.push(parent);
+        }
+      }
+    }
+    toRemove.forEach(el => el.remove());
+
+    // Also hide the website line in contact bars if it's now empty
+    Array.from(doc.querySelectorAll('.cta-contact, .contact-bar')).forEach(bar => {
+      // Remove any empty anchor tags or empty divs left behind
+      Array.from(bar.querySelectorAll('a')).forEach(a => {
+        if (!a.textContent.trim() || a.href === window.location.href) a.remove();
+      });
+      Array.from(bar.querySelectorAll('div')).forEach(d => {
+        if (!d.textContent.trim()) d.remove();
+      });
+    });
+  }
 
   // If the template already contains tel:/mailto: links, update them too.
   Array.from(doc.querySelectorAll('a[href^="tel:"]')).forEach(a => {
@@ -506,6 +534,23 @@ async function buildHtml(data) {
   Array.from(doc.querySelectorAll('a[href^="mailto:"]')).forEach(a => {
     a.setAttribute("href", `mailto:${data.email || ""}`);
     a.textContent = data.email || "";
+  });
+
+  // Handle [Website] anchor links on final page
+  Array.from(doc.querySelectorAll('a')).forEach(a => {
+    const href = a.getAttribute('href') || '';
+    const text = a.textContent || '';
+    if (href.includes('[Website]') || text.includes('[Website]')) {
+      if (data.website) {
+        a.setAttribute('href', data.website);
+        a.textContent = data.website;
+      } else {
+        // No website — remove the wrapper span (which includes the separator)
+        const wrapper = a.closest('.website-link-wrapper') || a.parentElement;
+        if (wrapper) wrapper.remove();
+        else a.remove();
+      }
+    }
   });
 
   // Fallback for footer/contact areas that contain plain text instead of placeholders.
@@ -545,7 +590,13 @@ async function renderPreview() {
 async function downloadHtml() {
   const html = await renderPreview();
   if (!html) return;
-  const filename = `${slugify(el("name").value)}.html`;
+  // Build filename from template name + agent name
+  const templateInput = el("templateFile");
+  let templateBase = "Agent_Profile";
+  if (templateInput && templateInput.files && templateInput.files[0]) {
+    templateBase = templateInput.files[0].name.replace(/\.html$/i, "");
+  }
+  const filename = `${templateBase}_${slugify(el("name").value)}.html`;
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
